@@ -24,4 +24,4 @@ FROM base AS final
 
     COPY --from=build /src/echo .
     
-    ENTRYPOINT ["/echo"]
+    ENTRYPOINT ["./echo"]
