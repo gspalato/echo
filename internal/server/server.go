@@ -25,6 +25,9 @@ func Start(ctx context.Context) {
 	authService := services.AuthService{}
 	authService.Init(ctx, &dbService, &hashService)
 
+	stationsService := services.StationsService{}
+	stationsService.Init(ctx)
+
 	r := chi.NewRouter()
 	render := render.Render{}
 
@@ -38,6 +41,7 @@ func Start(ctx context.Context) {
 		r.Use(jwtauth.Authenticator(authService.TokenAuth))
 
 		r.Mount("/me", routes.GetMeRouter(ctx, &render, &dbService))
+		r.Mount("/stations", routes.GetStationsRouter(ctx, &render, &authService, &dbService, &stationsService))
 	})
 
 	r.Mount("/auth", routes.GetAuthRouter(ctx, &render, &authService))

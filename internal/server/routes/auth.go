@@ -15,8 +15,7 @@ import (
 )
 
 type AuthHandler struct {
-	r *render.Render
-
+	r           *render.Render
 	authService *services.AuthService
 }
 

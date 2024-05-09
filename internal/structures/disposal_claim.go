@@ -1,10 +1,11 @@
 package structures
 
 type DisposalClaim struct {
+	Id         string     `json:"id" bson:"_id,omitempty"`
 	UserId     string     `json:"user_id"`
 	OperatorId string     `json:"operator_id"`
 	Token      string     `json:"token"`
-	Credits    float64    `json:"credits"`
+	Credits    float32    `json:"credits"`
 	IsClaimed  bool       `json:"is_claimed"`
 	Disposals  []Disposal `json:"disposals"`
 	Weight     float32    `json:"weight"`

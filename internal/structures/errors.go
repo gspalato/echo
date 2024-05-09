@@ -38,4 +38,6 @@ var (
 
 	// ErrIncompatibleVersion is returned when the version is incompatible
 	ErrIncompatibleVersion = errors.New("incompatible version")
+
+	ErrNoDisposal = errors.New("disposal not found")
 )
