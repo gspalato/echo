@@ -8,12 +8,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/unrolled/render"
+	"go.uber.org/zap"
 
 	"unreal.sh/echo/internal/server/routes"
 	"unreal.sh/echo/internal/server/services"
 )
 
-func Start(ctx context.Context) {
+func Start(ctx context.Context, logger *zap.SugaredLogger) {
 	// Initialize database.
 	dbService := services.DatabaseService{}
 	dbService.Init(ctx)
@@ -47,4 +48,6 @@ func Start(ctx context.Context) {
 	r.Mount("/auth", routes.GetAuthRouter(ctx, &render, &authService))
 
 	http.ListenAndServe(":4000", r)
+
+	logger.Info("Server started on port :4000.")
 }
