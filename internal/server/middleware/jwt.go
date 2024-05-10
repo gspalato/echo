@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"unreal.sh/echo/internal/server/services"
 )
@@ -22,6 +24,13 @@ func ValidateToken(authService *services.AuthService) func(http.Handler) http.Ha
 			token := r.Header.Get("Authorization")
 			if token == "" {
 				http.Error(rw, "No token provided", http.StatusUnauthorized)
+				return
+			}
+
+			if strings.HasPrefix(token, "Bearer ") {
+				token = token[7:]
+			} else {
+				http.Error(rw, "Invalid authentication header", http.StatusUnauthorized)
 				return
 			}
 
@@ -49,7 +58,14 @@ func RequireAuthentication(authService *services.AuthService) func(http.Handler)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			// Get the JWT token from the "token" context value.
-			token := r.Context().Value("token").(string)
+			tokenInterface := r.Context().Value(TokenContextKey)
+			if tokenInterface == nil {
+				fmt.Println("Couldn't fetch token from context")
+				http.Error(rw, "Couldn't fetch token from context", http.StatusInternalServerError)
+				return
+			}
+
+			token := tokenInterface.(string)
 
 			// Get the user from the token
 			user, claims, err := authService.ParseAccessToken(token)
