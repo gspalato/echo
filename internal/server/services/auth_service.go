@@ -31,6 +31,8 @@ func (as *AuthService) Init(ctx context.Context, dbService *DatabaseService, has
 // Authenticate authenticates a user with the given username and password.
 // It returns a profile on success, and an error on failure.
 func (as *AuthService) Authenticate(username string, password string) (*structures.User, error) {
+	fmt.Printf("Authenticating user %s...\n", username)
+
 	user, err := as.dbService.GetUserByUsername(username)
 	if err != nil {
 		return nil, err
@@ -98,6 +100,8 @@ func (as *AuthService) GenerateRefreshToken(claims jwt.StandardClaims) (string, 
 }
 
 func (as *AuthService) ParseAccessToken(accessToken string) (*structures.User, *structures.UserClaims, error) {
+	fmt.Println("ParseAccessToken reached.")
+
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &structures.UserClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(*as.secretKey), nil
@@ -113,6 +117,8 @@ func (as *AuthService) ParseAccessToken(accessToken string) (*structures.User, *
 
 	userClaims := parsedAccessToken.Claims.(*structures.UserClaims)
 	id := userClaims.UserId
+
+	fmt.Printf("User ID: %s\n", id)
 
 	user, err := as.dbService.GetUserById(id)
 	if err != nil {
