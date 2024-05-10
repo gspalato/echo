@@ -42,7 +42,7 @@ func Start(ctx context.Context, logger *zap.SugaredLogger) {
 		r.Use(middleware.RequireAuthentication(&authService))
 
 		r.Mount("/me", routes.GetMeRouter(ctx, &render, &dbService))
-		r.Mount("/stations", routes.GetStationsRouter(ctx, &render, &authService, &dbService, &stationsService))
+		r.Mount("/stations", routes.GetStationsRouter(ctx, &render, &stationsService))
 	})
 
 	r.Mount("/auth", routes.GetAuthRouter(ctx, &render, &authService))

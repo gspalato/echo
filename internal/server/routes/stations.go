@@ -16,8 +16,6 @@ import (
 
 type StationsHandler struct {
 	r               *render.Render
-	authService     *services.AuthService
-	dbService       *services.DatabaseService
 	stationsService *services.StationsService
 }
 
@@ -50,13 +48,11 @@ func (sh *StationsHandler) RegisterStation(w http.ResponseWriter, r *http.Reques
 }
 
 func GetStationsRouter(ctx context.Context, render *render.Render,
-	as *services.AuthService, ds *services.DatabaseService, ss *services.StationsService) chi.Router {
+	ss *services.StationsService) chi.Router {
 	r := chi.NewRouter()
 
 	stationsHandler := StationsHandler{
 		r:               render,
-		authService:     as,
-		dbService:       ds,
 		stationsService: ss,
 	}
 
