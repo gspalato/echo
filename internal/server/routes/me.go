@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/jwtauth"
 	"github.com/google/uuid"
 	"github.com/unrolled/render"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"unreal.sh/echo/internal/server/middleware"
 	"unreal.sh/echo/internal/server/services"
 	"unreal.sh/echo/internal/structures"
 	"unreal.sh/echo/internal/structures/inputs"
@@ -28,17 +28,7 @@ type MeHandler struct {
 // GetProfile returns the profile of the currently authenticated user.
 // It sends a GetEcobucksProfilePayload with Profile as nil if an error occurs.
 func (mh *MeHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	userId := claims["user_id"].(string)
-
-	user, err := mh.dbService.GetUserById(userId)
-	if err == structures.ErrNoUser {
-		http.Error(w, "User not found.", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	user := r.Context().Value(middleware.UserContextKey).(*structures.User)
 
 	payload := payloads.GetEcobucksProfilePayload{Profile: user.ToProfile()}
 
@@ -46,19 +36,9 @@ func (mh *MeHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mh *MeHandler) GetDisposals(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	userId := claims["user_id"].(string)
+	user := r.Context().Value(middleware.UserContextKey).(*structures.User)
 
-	_, err := mh.dbService.GetUserById(userId)
-	if err == structures.ErrNoUser {
-		http.Error(w, "User not found.", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	disposalClaims, err := mh.dbService.GetDisposalsByUserId(userId)
+	disposalClaims, err := mh.dbService.GetDisposalsByUserId(user.Id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,8 +50,7 @@ func (mh *MeHandler) GetDisposals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mh *MeHandler) RegisterDisposal(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	userId := claims["user_id"].(string)
+	user := r.Context().Value(middleware.UserContextKey).(*structures.User)
 
 	var input inputs.RegisterDisposalInput
 
@@ -81,22 +60,13 @@ func (mh *MeHandler) RegisterDisposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := mh.dbService.GetUserById(userId)
-	if err == structures.ErrNoUser {
-		http.Error(w, "User not found.", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	if !user.IsOperator {
 		http.Error(w, "User is not an operator.", http.StatusUnauthorized)
 		return
 	}
 
 	disposal := structures.DisposalClaim{
-		OperatorId: userId,
+		OperatorId: user.Id,
 		Token:      uuid.New().String(),
 		IsClaimed:  false,
 		Disposals:  input.Disposals,
@@ -118,23 +88,13 @@ func (mh *MeHandler) RegisterDisposal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mh *MeHandler) ClaimDisposal(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	userId := claims["user_id"].(string)
+	user := r.Context().Value(middleware.UserContextKey).(*structures.User)
 
 	var input inputs.ClaimDisposalInput
 
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		http.Error(w, "Invalid input.", http.StatusBadRequest)
-		return
-	}
-
-	user, err := mh.dbService.GetUserById(userId)
-	if err == structures.ErrNoUser {
-		http.Error(w, "User not found.", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -152,7 +112,7 @@ func (mh *MeHandler) ClaimDisposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = mh.dbService.UpdateDisposal(*input.DisposalToken, primitive.M{"is_claimed": true, "user_id": userId})
+	err = mh.dbService.UpdateDisposal(*input.DisposalToken, primitive.M{"is_claimed": true, "user_id": user.Id})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
