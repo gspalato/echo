@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-chi/jwtauth/v5"
-
+	"github.com/golang-jwt/jwt"
 	"unreal.sh/echo/internal/structures"
 )
 
 type AuthService struct {
-	TokenAuth *jwtauth.JWTAuth
+	secretKey *string
 
 	dbService   *DatabaseService
 	hashService *HashService
@@ -23,7 +22,7 @@ func (as *AuthService) Init(ctx context.Context, dbService *DatabaseService, has
 		panic("No JWT security key found in environment.")
 	}
 
-	as.TokenAuth = jwtauth.New("HS256", []byte(secret), nil)
+	as.secretKey = &secret
 
 	as.dbService = dbService
 	as.hashService = hashService
@@ -81,32 +80,68 @@ func (as *AuthService) CreateAccount(name string, username string, password stri
 	return user, nil
 }
 
-func (as *AuthService) VerifyToken(tokenString string) (*structures.User, error) {
-	t, err := as.TokenAuth.Decode(tokenString)
-	if err != nil {
-		return nil, err
+func (as *AuthService) GenerateToken(u *structures.User) (string, error) {
+	claims := structures.UserClaims{
+		UserId:         u.Id,
+		StandardClaims: jwt.StandardClaims{},
 	}
 
-	id, exists := t.Get("user_id")
-	if !exists {
-		return nil, structures.ErrInvalidTokenClaims
-	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	user, err := as.dbService.GetUserById(id.(string))
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return accessToken.SignedString([]byte(*as.secretKey))
 }
 
-func (as *AuthService) GenerateToken(u *structures.User) (string, error) {
-	_, token, err := as.TokenAuth.Encode(
-		map[string]interface{}{"user_id": u.Id})
+func (as *AuthService) GenerateRefreshToken(claims jwt.StandardClaims) (string, error) {
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return refreshToken.SignedString([]byte(*as.secretKey))
+}
+
+func (as *AuthService) ParseAccessToken(accessToken string) (*structures.User, *structures.UserClaims, error) {
+	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &structures.UserClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(*as.secretKey), nil
+		})
 
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 
-	return token, nil
+	if !parsedAccessToken.Valid {
+		return nil, nil, structures.ErrInvalidToken
+	}
+
+	userClaims := parsedAccessToken.Claims.(*structures.UserClaims)
+	id := userClaims.UserId
+
+	user, err := as.dbService.GetUserById(id)
+	if err != nil {
+		return nil, nil, structures.ErrNoUser
+	}
+
+	return user, userClaims, nil
+}
+
+func (as *AuthService) ParseRefreshToken(refreshToken string) *jwt.StandardClaims {
+	parsedRefreshToken, _ := jwt.ParseWithClaims(refreshToken, &jwt.StandardClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(*as.secretKey), nil
+		})
+
+	return parsedRefreshToken.Claims.(*jwt.StandardClaims)
+}
+
+func (as *AuthService) IsAuthorized(token string) (bool, error) {
+	_, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, structures.ErrInvalidToken
+		}
+		return []byte(*as.secretKey), nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

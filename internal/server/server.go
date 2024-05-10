@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/jwtauth/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/unrolled/render"
 	"go.uber.org/zap"
 
+	"unreal.sh/echo/internal/server/middleware"
 	"unreal.sh/echo/internal/server/routes"
 	"unreal.sh/echo/internal/server/services"
 )
@@ -37,9 +37,9 @@ func Start(ctx context.Context, logger *zap.SugaredLogger) {
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Logger)
-		r.Use(jwtauth.Verifier(authService.TokenAuth))
-		r.Use(jwtauth.Authenticator(authService.TokenAuth))
+		r.Use(chiMiddleware.Logger)
+		r.Use(middleware.ValidateToken(&authService))
+		r.Use(middleware.RequireAuthentication(&authService))
 
 		r.Mount("/me", routes.GetMeRouter(ctx, &render, &dbService))
 		r.Mount("/stations", routes.GetStationsRouter(ctx, &render, &authService, &dbService, &stationsService))
