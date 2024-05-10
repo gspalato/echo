@@ -13,8 +13,8 @@ import (
 	"unreal.sh/echo/internal/structures"
 )
 
-const USER_COLLECTION_NAME = "users"
-const DISPOSAL_COLLECTION_NAME = "disposals"
+const UserCollectionName = "users"
+const DisposalCollectionName = "disposals"
 
 type DatabaseService struct {
 	Client *mongo.Client
@@ -76,7 +76,7 @@ func (ds *DatabaseService) GetUserById(id string) (*structures.User, error) {
 
 	filter := bson.M{"_id": objectId}
 
-	err = ds.Client.Database(ds.dbName).Collection(USER_COLLECTION_NAME).FindOne(
+	err = ds.Client.Database(ds.dbName).Collection(UserCollectionName).FindOne(
 		context.Background(), filter).Decode(&result)
 
 	if err == mongo.ErrNoDocuments {
@@ -94,7 +94,7 @@ func (ds *DatabaseService) GetUserByUsername(username string) (*structures.User,
 
 	filter := bson.M{"username": username}
 
-	err := ds.Client.Database(ds.dbName).Collection(USER_COLLECTION_NAME).FindOne(
+	err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).FindOne(
 		context.Background(), filter).Decode(&result)
 
 	if err == mongo.ErrNoDocuments {
@@ -108,7 +108,7 @@ func (ds *DatabaseService) GetUserByUsername(username string) (*structures.User,
 }
 
 func (ds *DatabaseService) CreateUser(user structures.User) error {
-	_, err := ds.Client.Database(ds.dbName).Collection(USER_COLLECTION_NAME).InsertOne(context.Background(), user)
+	_, err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).InsertOne(context.Background(), user)
 	if err != nil {
 		fmt.Printf("Failed to create user %v: %v\n", user.Username, err)
 		return err
@@ -124,7 +124,7 @@ func (ds *DatabaseService) GetDisposalsByUserId(userId string) ([]structures.Dis
 
 	filter := bson.M{"user_id": userId}
 
-	cur, err := ds.Client.Database(ds.dbName).Collection(DISPOSAL_COLLECTION_NAME).Find(
+	cur, err := ds.Client.Database(ds.dbName).Collection(DisposalCollectionName).Find(
 		context.Background(), filter)
 
 	if err != nil {
@@ -142,7 +142,7 @@ func (ds *DatabaseService) GetDisposalsByUserId(userId string) ([]structures.Dis
 }
 
 func (ds *DatabaseService) InsertDisposal(disposal *structures.DisposalClaim) error {
-	_, err := ds.Client.Database(ds.dbName).Collection(DISPOSAL_COLLECTION_NAME).InsertOne(context.Background(), disposal)
+	_, err := ds.Client.Database(ds.dbName).Collection(DisposalCollectionName).InsertOne(context.Background(), disposal)
 	if err != nil {
 		fmt.Printf("Failed to insert disposal: %v\n", err)
 		return err
@@ -158,7 +158,7 @@ func (ds *DatabaseService) GetDisposalByToken(token string) (*structures.Disposa
 
 	filter := bson.M{"token": token}
 
-	err := ds.Client.Database(ds.dbName).Collection(DISPOSAL_COLLECTION_NAME).FindOne(
+	err := ds.Client.Database(ds.dbName).Collection(DisposalCollectionName).FindOne(
 		context.Background(), filter).Decode(&result)
 
 	if err == mongo.ErrNoDocuments {
@@ -175,7 +175,7 @@ func (ds *DatabaseService) GetDisposalByToken(token string) (*structures.Disposa
 // Both the filter and update parameters should be MongoDB's BSON objects (primitives).
 // It returns nil on success, and an error on failure.
 func (ds *DatabaseService) UpdateDisposal(disposalToken string, update interface{}) error {
-	r, err := ds.Client.Database(ds.dbName).Collection(DISPOSAL_COLLECTION_NAME).UpdateOne(context.Background(),
+	r, err := ds.Client.Database(ds.dbName).Collection(DisposalCollectionName).UpdateOne(context.Background(),
 		primitive.M{"token": disposalToken}, update)
 
 	if err != nil {
@@ -192,7 +192,7 @@ func (ds *DatabaseService) LinkTransactionToUserById(transaction *structures.Tra
 	filter := bson.M{"_id": userId}
 	update := bson.M{"$push": bson.M{"transactions": transaction}}
 
-	err := ds.Client.Database(ds.dbName).Collection(USER_COLLECTION_NAME).FindOneAndUpdate(context.Background(),
+	err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).FindOneAndUpdate(context.Background(),
 		filter, update).Err()
 
 	if err != nil {
