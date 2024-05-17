@@ -119,6 +119,31 @@ func (ds *DatabaseService) CreateUser(user structures.User) error {
 	return nil
 }
 
+func (ds *DatabaseService) UpdateUserById(id string, update interface{}) error {
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		fmt.Println("Invalid ID.")
+		return structures.ErrInvalidDatabaseId
+	}
+
+	r, err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).UpdateOne(context.Background(),
+		primitive.M{"_id": objectId}, update)
+
+	if err != nil {
+		fmt.Printf("Failed to update user %v: %v\n", id, err)
+		return err
+	}
+
+	if r.MatchedCount == 0 {
+		fmt.Printf("No users matched the filter.\n")
+		return structures.ErrNoUser
+	}
+
+	fmt.Printf("Updated user %v.\n", id)
+
+	return nil
+}
+
 func (ds *DatabaseService) GetDisposalsByUserId(userId string) ([]structures.DisposalClaim, error) {
 	var result *[]structures.DisposalClaim
 
@@ -183,21 +208,37 @@ func (ds *DatabaseService) UpdateDisposal(disposalToken string, update interface
 		return err
 	}
 
-	fmt.Printf("Updated disposal %v.\n", r.UpsertedID)
+	if r.MatchedCount == 0 {
+		fmt.Printf("No disposals matched the filter.\n")
+		return structures.ErrNoDisposal
+	}
+
+	fmt.Printf("Updated disposal")
 
 	return nil
 }
 
 func (ds *DatabaseService) LinkTransactionToUserById(transaction *structures.Transaction, userId string) error {
-	filter := bson.M{"_id": userId}
+	objectId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		fmt.Println("Invalid ID.")
+		return structures.ErrInvalidDatabaseId
+	}
+
+	filter := bson.M{"_id": objectId}
 	update := bson.M{"$push": bson.M{"transactions": transaction}}
 
-	err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).FindOneAndUpdate(context.Background(),
-		filter, update).Err()
+	res, err := ds.Client.Database(ds.dbName).Collection(UserCollectionName).UpdateOne(context.Background(),
+		filter, update)
 
 	if err != nil {
 		fmt.Printf("Failed to link transaction to user %v: %v\n", userId, err)
 		return err
+	}
+
+	if res.MatchedCount == 0 {
+		fmt.Printf("No users matched the filter.\n")
+		return structures.ErrNoUser
 	}
 
 	return nil

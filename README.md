@@ -1,0 +1,19 @@
+# Echo
+
+The Ecobucks Project's back-end and API, written in Go.
+
+## Example `.env`
+
+```env
+JWT_SECURITY_KEY=
+
+DATABASE_URI=
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_NAME=Ecobucks
+
+AWS_ACCESS_KEY=
+AWS_SECRET_ACCESS_KEY=
+AWS_AVATAR_S3_BUCKET=
+AWS_AVATAR_URL_FORMAT=
+```

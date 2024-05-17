@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -16,16 +17,18 @@ type AuthService struct {
 	hashService *HashService
 }
 
-func (as *AuthService) Init(ctx context.Context, dbService *DatabaseService, hashService *HashService) {
+func (as *AuthService) Init(ctx context.Context, dbService *DatabaseService, hashService *HashService) error {
 	secret, found := os.LookupEnv("JWT_SECURITY_KEY")
 	if !found {
-		panic("No JWT security key found in environment.")
+		return errors.New("missing JWT_SECURITY_KEY environment variable")
 	}
 
 	as.secretKey = &secret
 
 	as.dbService = dbService
 	as.hashService = hashService
+
+	return nil
 }
 
 // Authenticate authenticates a user with the given username and password.
@@ -35,11 +38,13 @@ func (as *AuthService) Authenticate(username string, password string) (*structur
 
 	user, err := as.dbService.GetUserByUsername(username)
 	if err != nil {
+		fmt.Println("User not found.")
 		return nil, err
 	}
 
 	match, err := as.hashService.ComparePasswordAndHash(user.PasswordHash, password)
 	if err != nil {
+		fmt.Println("Error comparing password and hash.")
 		return nil, err
 	}
 

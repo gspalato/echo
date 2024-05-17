@@ -24,7 +24,16 @@ func Start(ctx context.Context, logger *zap.SugaredLogger) {
 	hashService.Init(ctx)
 
 	authService := services.AuthService{}
-	authService.Init(ctx, &dbService, &hashService)
+	err := authService.Init(ctx, &dbService, &hashService)
+	if err != nil {
+		panic("Failed to initialize auth service: " + err.Error())
+	}
+
+	userService := services.UserService{}
+	err = userService.Init(ctx)
+	if err != nil {
+		panic("Failed to initialize auth service: " + err.Error())
+	}
 
 	stationsService := services.StationsService{}
 	stationsService.Init(ctx)
@@ -41,7 +50,7 @@ func Start(ctx context.Context, logger *zap.SugaredLogger) {
 		r.Use(middleware.ValidateToken(&authService))
 		r.Use(middleware.RequireAuthentication(&authService))
 
-		r.Mount("/me", routes.GetMeRouter(ctx, &render, &dbService))
+		r.Mount("/me", routes.GetMeRouter(ctx, &render, &userService, &dbService))
 		r.Mount("/stations", routes.GetStationsRouter(ctx, &render, &stationsService))
 	})
 

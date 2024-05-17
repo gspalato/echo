@@ -1,17 +1,12 @@
 package structures
 
 type DisposalClaim struct {
-	Id         string     `json:"id" bson:"_id,omitempty"`
-	UserId     string     `json:"user_id"`
-	OperatorId string     `json:"operator_id"`
-	Token      string     `json:"token"`
-	Credits    float32    `json:"credits"`
-	IsClaimed  bool       `json:"is_claimed"`
-	Disposals  []Disposal `json:"disposals"`
-	Weight     float32    `json:"weight"`
-
-	/*
-	   public double Credits => Disposals.Sum(x => x.Credits);
-	   public float Weight => Disposals.Sum(x => x.Weight);
-	*/
+	Id         string     `json:"id"          bson:"_id,omitempty"`
+	UserId     string     `json:"user_id"     bson:"user_id"`
+	OperatorId string     `json:"operator_id" bson:"operator_id"`
+	Token      string     `json:"token"       bson:"token"`
+	Credits    float32    `json:"credits"     bson:"credits"`
+	IsClaimed  bool       `json:"is_claimed"  bson:"is_claimed"`
+	Disposals  []Disposal `json:"disposals"   bson:"disposals"`
+	Weight     float32    `json:"weight"      bson:"weight"`
 }
