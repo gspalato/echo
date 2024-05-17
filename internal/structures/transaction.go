@@ -1,10 +1,10 @@
 package structures
 
-type TransactionType int
+type TransactionType string
 
 const (
-	CLAIM TransactionType = iota
-	SPEND
+	CLAIM TransactionType = "CLAIM"
+	SPEND TransactionType = "SPEND"
 )
 
 type Transaction struct {
